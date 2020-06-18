@@ -78,6 +78,8 @@ class ExperimentRunner(tune.Trainable):
             'pool': replay_pool,
         })
         sampler = self.sampler = samplers.get(variant['sampler_params'])
+        self.sampler.seed = variant['run_params']['seed']
+        print(sampler.seed, self.sampler.seed)
 
         variant['algorithm_params']['config'].update({
             'training_environment': training_environment,

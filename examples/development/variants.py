@@ -20,12 +20,13 @@ ALGORITHM_PARAMS_BASE = {
         'n_train_repeat': 1,
         'eval_render_kwargs': {},
         'eval_n_episodes': 1,
-        'num_warmup_samples': tune.sample_from(lambda spec: (
-            10 * (spec.get('config', spec)
-                  ['sampler_params']
-                  ['config']
-                  ['max_path_length'])
-        )),
+        'num_warmup_samples': 1000,
+        # tune.sample_from(lambda spec: (
+        #     10 * (spec.get('config', spec)
+        #           ['sampler_params']
+        #           ['config']
+        #           ['max_path_length'])
+        # )),
     }
 }
 
@@ -121,6 +122,10 @@ TOTAL_STEPS_PER_UNIVERSE_DOMAIN_TASK = {
         'Point2DEnv': {
             DEFAULT_KEY: int(5e4),
         },
+        'HopperBulletEnv': {
+            DEFAULT_KEY: int(1e6),
+            'v0': int(2e6)
+        }
     },
     'dm_control': {
         # BENCHMARKING
@@ -421,7 +426,7 @@ def get_environment_params(universe, domain, task):
     return environment_params
 
 
-def get_variant_spec_base(universe, domain, task, policy, algorithm):
+def get_variant_spec_base(universe, domain, task, policy, algorithm, seed):
     algorithm_params = deep_update(
         ALGORITHM_PARAMS_BASE,
         ALGORITHM_PARAMS_ADDITIONAL.get(algorithm, {}),
@@ -487,8 +492,9 @@ def get_variant_spec_base(universe, domain, task, policy, algorithm):
         },
         'run_params': {
             'host_name': get_host_name(),
-            'seed': tune.sample_from(
-                lambda spec: np.random.randint(0, 10000)),
+            # 'seed': tune.sample_from(
+            #     lambda spec: np.random.randint(0, 10000)),
+            'seed': seed,
             'checkpoint_at_end': True,
             'checkpoint_frequency': tune.sample_from(get_checkpoint_frequency),
             'checkpoint_replay_pool': False,
@@ -508,10 +514,11 @@ def get_variant_spec_image(universe,
                            task,
                            policy,
                            algorithm,
+                           seed,
                            *args,
                            **kwargs):
     variant_spec = get_variant_spec_base(
-        universe, domain, task, policy, algorithm, *args, **kwargs)
+        universe, domain, task, policy, algorithm, seed, *args, **kwargs)
 
     if is_image_env(universe, domain, task, variant_spec):
         preprocessor_params = {
@@ -555,7 +562,7 @@ def get_variant_spec(args):
     universe, domain, task = args.universe, args.domain, args.task
 
     variant_spec = get_variant_spec_image(
-        universe, domain, task, args.policy, args.algorithm)
+        universe, domain, task, args.policy, args.algorithm, args.seed)
 
     if args.checkpoint_replay_pool is not None:
         variant_spec['run_params']['checkpoint_replay_pool'] = (

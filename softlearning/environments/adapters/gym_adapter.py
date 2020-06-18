@@ -4,6 +4,7 @@ from collections import defaultdict, OrderedDict
 import copy
 
 import gym
+import pybullet_envs
 from gym import spaces, wrappers
 from gym.envs.mujoco.mujoco_env import MujocoEnv
 

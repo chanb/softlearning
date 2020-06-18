@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+import _pickle as pickle
 import numpy as np
 import tree
 
@@ -16,6 +17,8 @@ class SimpleSampler(BaseSampler):
         self._total_samples = 0
 
         self._is_first_step = True
+        self._returns = [0]
+        self._cum_episode_lengths = [0]
 
     def reset(self):
         if self.policy is not None:
@@ -59,6 +62,8 @@ class SimpleSampler(BaseSampler):
         self._path_length += 1
         self._path_return += reward
         self._total_samples += 1
+        self._returns[-1] += reward
+        self._cum_episode_lengths[-1] += 1
 
         processed_sample = self._process_sample(
             observation=self._current_observation,
@@ -72,6 +77,14 @@ class SimpleSampler(BaseSampler):
         self._current_path.append(processed_sample)
 
         if terminal or self._path_length >= self._max_path_length:
+            if hasattr(self, 'seed'):
+                with open(f"/home/chanb/Documents/research/softlearning/sac-seed_{self.seed}.pkl", "wb") as f:
+                    pickle.dump({
+                        'returns': self._returns,
+                        'cum_episode_lengths': self._cum_episode_lengths
+                    }, f)
+            self._returns.append(0)
+            self._cum_episode_lengths.append(self._cum_episode_lengths[-1])
             last_path = tree.map_structure(
                 lambda *x: np.stack(x, axis=0), *self._current_path)
 
